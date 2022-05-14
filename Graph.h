@@ -42,7 +42,7 @@ class Graph {
 		return false;
 	}
 	int checker(const std::string& str) const {
-		for (size_t i = 0; i < vertex.size() - 1; ++i) {
+		for (size_t i = 0; i < vertex.size(); ++i) {
 			if (str == vertex[i].id) return i;
 		}
 		return -1;
@@ -58,6 +58,42 @@ class Graph {
 		}
 		if (tmp[tmp.size() - 1] == dst) return true;
 		else return false;
+	}
+	int dijkstra(std::vector<int>& length, std::vector<bool> checked, const TVertex& src, const TVertex& dst) {
+		size_t new_min = checker(src.id); // default = source
+		checked[new_min] = true;
+		for (size_t i = 0; i < edge[new_min].size(); ++i) {
+			int ch = checker(edge[new_min][i].dest);
+			if (checked[ch] == true) continue;
+			if (length[ch]>length[new_min]+edge[new_min][i].length) {
+				length[ch] = length[new_min] + edge[new_min][i].length;
+				/*if(length[temp] != INT32_MAX) length[temp] += edge[new_min][i].length;
+				else length[temp] = edge[new_min][i].length;*/
+			}
+		}
+		int temp = -1;
+		int ind_min = -1;
+		for (size_t i = 0; i < length.size(); ++i) {
+			if (checked[i] == true) continue;
+			if (checked[i] == false) {
+				temp = length[i];
+				ind_min = i;
+				break;
+			}
+		}
+		for (size_t i = 0; i < length.size(); ++i) {
+			if (checked[i] == true) continue;
+			if (temp > length[i]) {
+				ind_min = i;
+				temp = length[i];
+			}
+		}
+		if (ind_min == -1) { 
+			//for (size_t i = 0; i < length.size(); ++i) {
+			//	std::cout << length[i] << std::endl;
+			//}
+			return length[checker(dst.id)]; }
+		return dijkstra(length, checked, vertex[ind_min], dst);
 	}
 public:
 	Graph() {
@@ -134,6 +170,19 @@ public:
 				edge[ind].erase(edge[ind].begin() + i);
 			}
 		}
+	}
+	int dijkstra(const TVertex& src, const TVertex& dst) {
+		if (findVertex(src) == false || findVertex(dst) == false) return -1;
+		std::vector<int> length(vertex.size());
+		std::vector<bool> checked(vertex.size(),false);
+		int new_min = checker(src.id);
+		for (size_t i = 0; i < length.size(); ++i) {
+			if (i == new_min) continue;
+			length[i] = INT32_MAX;
+		}
+		length[checker(src.id)] = 0;
+		checked[checker(src.id)] = true;
+		return dijkstra(length, checked, src, dst);
 	}
 	void print() {
 		for (size_t i = 0; i < count; ++i) {

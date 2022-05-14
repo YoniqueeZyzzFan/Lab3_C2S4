@@ -35,6 +35,7 @@ int main() {
 	g.addEdge(Vertex("Kuraka", 3), Vertex("Samara", 15), Edge("Samara", 125));
 	g.addEdge(Vertex("Temp", 5), Vertex("Krasnoyarsk", 13), Edge("Krasnoyarsk", 5));
 	//g.deleteEdge(Vertex("Temp", 5), Vertex("Krasnoyarsk", 13));
-	g.print();
-	std::cout << g.dfs(Vertex("Temp", 5), Vertex("Krasnoyarsk", 13));
+	//g.print();
+	//std::cout << g.dfs(Vertex("Temp", 5), Vertex("Krasnoyarsk", 13));
+	std::cout<<g.dijkstra(Vertex("Krasnoyarsk", 13), Vertex("Kuraka", 3));
 }
