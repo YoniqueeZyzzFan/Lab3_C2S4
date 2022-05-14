@@ -182,7 +182,12 @@ public:
 		}
 		length[checker(src.id)] = 0;
 		checked[checker(src.id)] = true;
-		return dijkstra(length, checked, src, dst);
+		int result = dijkstra(length, checked, src, dst);
+		if (result == INT32_MAX) {
+			std::cout << "Path doesnt exist" << std::endl;
+			return -1;
+		}
+		return result;
 	}
 	void print() {
 		for (size_t i = 0; i < count; ++i) {
