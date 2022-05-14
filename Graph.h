@@ -3,20 +3,12 @@
 #include <iostream>
 
 // Глубина + дейкстра
-template <typename TVertex>
-struct Info {
-	int color = 0;
-	TVertex current;
-	TVertex prev;
-	int step;
-};
-
 struct Edge {
 	std::string dest;
 	double length;
-	Edge(): dest(""),length(-1) {}
+	Edge() : dest(""), length(-1) {}
 	Edge(const std::string& dst, const double& l) :length(l), dest(dst) {}
-	bool operator ==(const Edge& rhs) const{
+	bool operator ==(const Edge& rhs) const {
 		if (this->dest != rhs.dest || this->length != rhs.length) return false;
 		else return true;
 	}
@@ -59,41 +51,38 @@ class Graph {
 		if (tmp[tmp.size() - 1] == dst) return true;
 		else return false;
 	}
-	int dijkstra(std::vector<int>& length, std::vector<bool> checked, const TVertex& src, const TVertex& dst) {
+	int dijkstra(std::vector<int>& length, std::vector<bool> checked, const TVertex& src, const TVertex& dst, std::vector<int>& parent) {
 		size_t new_min = checker(src.id); // default = source
 		checked[new_min] = true;
 		for (size_t i = 0; i < edge[new_min].size(); ++i) {
 			int ch = checker(edge[new_min][i].dest);
-			if (checked[ch] == true) continue;
-			if (length[ch]>length[new_min]+edge[new_min][i].length) {
+			if (length[ch] > length[new_min] + edge[new_min][i].length) {
 				length[ch] = length[new_min] + edge[new_min][i].length;
-				/*if(length[temp] != INT32_MAX) length[temp] += edge[new_min][i].length;
-				else length[temp] = edge[new_min][i].length;*/
+				parent[ch] = new_min;
 			}
 		}
 		int temp = -1;
 		int ind_min = -1;
-		for (size_t i = 0; i < length.size(); ++i) {
-			if (checked[i] == true) continue;
-			if (checked[i] == false) {
-				temp = length[i];
-				ind_min = i;
+		for (size_t i = 0; i < edge[new_min].size(); ++i) {
+			size_t ch = checker(edge[new_min][i].dest);
+			if (checked[ch] == false) {
+				temp = length[ch];
+				ind_min = ch;
 				break;
 			}
 		}
-		for (size_t i = 0; i < length.size(); ++i) {
-			if (checked[i] == true) continue;
-			if (temp > length[i]) {
-				ind_min = i;
-				temp = length[i];
+		for (size_t i = 0; i < edge[new_min].size(); ++i) {
+			int ch = checker(edge[new_min][i].dest);
+			if (checked[ch] == true) continue;
+			if (temp > length[ch]) {
+				ind_min = ch;
+				temp = length[ch];
 			}
 		}
 		if (ind_min == -1) { 
-			//for (size_t i = 0; i < length.size(); ++i) {
-			//	std::cout << length[i] << std::endl;
-			//}
-			return length[checker(dst.id)]; }
-		return dijkstra(length, checked, vertex[ind_min], dst);
+			return length[checker(dst.id)]; 
+		}
+		return dijkstra(length, checked, vertex[ind_min], dst, parent);
 	}
 public:
 	Graph() {
@@ -173,6 +162,7 @@ public:
 	}
 	int dijkstra(const TVertex& src, const TVertex& dst) {
 		if (findVertex(src) == false || findVertex(dst) == false) return -1;
+		std::vector<int> parent(vertex.size(), -1);
 		std::vector<int> length(vertex.size());
 		std::vector<bool> checked(vertex.size(),false);
 		int new_min = checker(src.id);
@@ -182,11 +172,24 @@ public:
 		}
 		length[checker(src.id)] = 0;
 		checked[checker(src.id)] = true;
-		int result = dijkstra(length, checked, src, dst);
+		int result = dijkstra(length, checked, src, dst,parent);
 		if (result == INT32_MAX) {
 			std::cout << "Path doesnt exist" << std::endl;
 			return -1;
 		}
+		std::vector<int> path;
+		for (int v = checker(dst.id); v != -1; v = parent[v]) {
+			path.push_back(v);
+		}
+		reverse(path.begin(), path.end());
+		std::vector<TVertex> path_to_dst;
+		std::cout << "path:";
+		for (size_t i = 0; i < path.size(); ++i) {
+			path_to_dst.push_back(vertex[path[i]]);
+			std::cout << path_to_dst[i].id << "->";
+		}
+		std::cout << std::endl;
+		
 		return result;
 	}
 	void print() {
