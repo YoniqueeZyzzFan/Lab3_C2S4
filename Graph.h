@@ -6,10 +6,11 @@
 struct Edge {
 	std::string dest;
 	double length;
-	Edge() : dest(""), length(-1) {}
-	Edge(const std::string& dst, const double& l) :length(l), dest(dst) {}
+	double pay;
+	Edge() : dest(""), length(-1), pay(-1) {}
+	Edge(const std::string& dst, const double& l, const double& p = 2) :length(l), dest(dst), pay(p) {}
 	bool operator ==(const Edge& rhs) const {
-		if (this->dest != rhs.dest || this->length != rhs.length) return false;
+		if (this->dest != rhs.dest || this->length != rhs.length || this->pay!=rhs.pay) return false;
 		else return true;
 	}
 	operator double() const{
@@ -199,9 +200,8 @@ public:
 	void print() {
 		for (size_t i = 0; i < count; ++i) {
 			std::cout << "City:" << vertex[i].id << "  |  Number of people:" << vertex[i].amount << std::endl;
-			std::cout << "Roads to: ";
 			for (size_t j = 0; j < edge[i].size(); ++j) {
-				std::cout << "          " << edge[i][j].dest << std::endl;
+				std::cout << "Road to: " << edge[i][j].dest << " | Pay: " << edge[i][j].pay << std::endl;
 			}
 			std::cout << "________________" << std::endl;
 		}

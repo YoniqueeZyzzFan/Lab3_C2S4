@@ -15,7 +15,7 @@ int main() {
 	g.addVertex(Vertex("Kuraka", 3));
 	g.addVertex(Vertex("Temp", 5));
 	g.addEdge(Vertex("Samara", 15), Vertex("Moscow", 20), Edge("Moscow", 100));
-	g.addEdge(Vertex("Samara", 15), Vertex("Kazan", 9), Edge("Kazan", 33));
+	g.addEdge(Vertex("Samara", 15), Vertex("Kazan", 9), Edge("Kazan", 33));	
 	g.addEdge(Vertex("Samara", 15), Vertex("Kuraka", 3),  Edge("Kuraka", 27));
 	g.addEdge(Vertex("Moscow", 20), Vertex("Novosibirsk", 5),  Edge("Novosibirsk", 16));
 	g.addEdge(Vertex("Moscow", 20), Vertex("Omsk", 11),  Edge("Omsk", 9));
@@ -35,7 +35,7 @@ int main() {
 	g.addEdge(Vertex("Kuraka", 3), Vertex("Samara", 15), Edge("Samara", 125));
 	g.addEdge(Vertex("Temp", 5), Vertex("Krasnoyarsk", 13), Edge("Krasnoyarsk", 5));
 	//g.deleteEdge(Vertex("Temp", 5), Vertex("Krasnoyarsk", 13));
-	//g.print();
+	g.print();
 	//std::cout << g.dfs(Vertex("Temp", 5), Vertex("Krasnoyarsk", 13));
 	std::cout<<g.dijkstra(Vertex("Temp", 5), Vertex("Kuraka", 3));
 }
