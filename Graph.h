@@ -10,9 +10,13 @@ struct Edge {
 	Edge(const std::string& dst, const double& l) :length(l), dest(dst) {}
 	bool operator ==(const Edge& rhs) const {
 		if (this->dest != rhs.dest || this->length != rhs.length) return false;
-		else return true;
+		else return true;w
+	}
+	operator double() const{
+		return length;
 	}
 };
+
 struct Vertex {
 	std::string id;
 	size_t amount;
