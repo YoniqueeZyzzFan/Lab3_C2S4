@@ -1,14 +1,28 @@
 #include <vector>
 #include <string>
 #include <iostream>
-
 // Глубина + дейкстра
 struct Edge {
 	std::string dest;
 	double length;
-	double pay;
-	Edge() : dest(""), length(-1), pay(-1) {}
-	Edge(const std::string& dst, const double& l, const double& p = 2) :length(l), dest(dst), pay(p) {}
+	bool pay;
+	int type; // 0- грунт , 1 - асфальт
+	Edge(const Edge& rhs) {
+		this->dest = rhs.dest;
+		this->length = rhs.length;
+		this->pay = rhs.pay;
+		this->type = rhs.type;
+	}
+	Edge& operator =(const Edge& rhs) {
+		if (this == &rhs) return *this;
+		this->dest = rhs.dest;
+		this->length = rhs.length;
+		this->pay = rhs.pay;
+		this->type = rhs.type;
+		return *this;
+	}
+	Edge() : dest(""), length(-1), pay(false), type(1) {}
+	Edge(const std::string& dst, const double& l, const double& p = 2, const int& type =1) :length(l), dest(dst), pay(p), type(type) {}
 	bool operator ==(const Edge& rhs) const {
 		if (this->dest != rhs.dest || this->length != rhs.length || this->pay!=rhs.pay) return false;
 		else return true;
@@ -21,13 +35,30 @@ struct Edge {
 struct Vertex {
 	std::string id;
 	size_t amount;
+	Vertex(const Vertex& rhs) {
+		this->id = rhs.id;
+		this->amount = rhs.amount;
+	}
+	Vertex& operator=(const Vertex& rhs) {
+		if (this == &rhs) return *this;
+		this->id = rhs.id;
+		this->amount = rhs.amount;
+		return *this;
+	}
 	Vertex(const std::string& str, const size_t& am): id(str),amount(am){}
 	bool operator==(const Vertex& rhs) const {
 		if (this->id != rhs.id || this->amount != rhs.amount) return false;
 		else return true;
 	}
 };
-template <typename TVertex, typename TEdge>
+template<>
+struct std::equal_to<Vertex> {
+	size_t operator()(const Vertex& v1, const Vertex& v2) {
+		return((v1.id == v2.id) && (v1.amount==v2.amount));
+	}
+};
+
+template <typename TVertex, typename TEdge, typename equal = std::equal_to<Vertex>>
 class Graph {
 	std::vector<std::vector<TEdge>> edge;
 	std::vector<TVertex> vertex;
@@ -56,7 +87,7 @@ class Graph {
 		if (tmp[tmp.size() - 1] == dst) return true;
 		else return false;
 	}
-	int dijkstra(std::vector<int>& length, std::vector<bool> checked, const TVertex& src, const TVertex& dst, std::vector<int>& parent) {
+	double dijkstra(std::vector<double>& length, std::vector<bool> checked, const TVertex& src, const TVertex& dst, std::vector<int>& parent) {
 		size_t new_min = checker(src.id); // default = source
 		checked[new_min] = true;
 		for (size_t i = 0; i < edge[new_min].size(); ++i) {
@@ -66,7 +97,7 @@ class Graph {
 				parent[ch] = new_min;
 			}
 		}
-		int temp = -1;
+		double temp = -1;
 		int ind_min = -1;
 		for (size_t i = 0; i < edge[new_min].size(); ++i) {
 			size_t ch = checker(edge[new_min][i].dest);
@@ -76,7 +107,7 @@ class Graph {
 				break;
 			}
 		}
-		for (size_t i = 0; i < edge[new_min].size(); ++i) {
+		for (size_t i = ind_min; i < edge[new_min].size(); ++i) {
 			int ch = checker(edge[new_min][i].dest);
 			if (checked[ch] == true) continue;
 			if (temp > length[ch]) {
@@ -120,10 +151,11 @@ public:
 		count++;
 	}
 	void deleteVertex(const TVertex& del) {
+		equal compare;
 		int ind = -1;
 		std::string temp;
 		for (size_t i = 0; i < vertex.size(); ++i) {
-			if (vertex[i] == del) {
+			if (compare(vertex[i],del)) {
 				ind = i;
 				temp = vertex[i].id;
 				vertex.erase(vertex.begin()+i);
@@ -143,8 +175,9 @@ public:
 	}
 	void addEdge(const TVertex& src, const TVertex& dst, const TEdge& newEdge) {
 		if (findVertex(src) == false || findVertex(dst) == false) return;
+		equal compare;
 		for (size_t i = 0; i < vertex.size(); ++i) {
-			if (src == vertex[i]) {
+			if (compare(src,vertex[i])) {
 				edge[i].push_back(newEdge);
 				return;
 			}
@@ -153,8 +186,9 @@ public:
 	void deleteEdge(const TVertex& src, const TVertex& dst) {
 		if (findVertex(src) == false || findVertex(dst) == false) return;
 		int ind = -1;
+		equal compare;
 		for (size_t i = 0; i < vertex.size(); ++i) {
-			if (vertex[i] == src) {
+			if (compare(vertex[i],src)) {
 				ind = i;
 				break;
 			}
@@ -165,10 +199,11 @@ public:
 			}
 		}
 	}
-	int dijkstra(const TVertex& src, const TVertex& dst) {
-		if (findVertex(src) == false || findVertex(dst) == false) return -1;
+	std::vector<TVertex> dijkstra(const TVertex& src, const TVertex& dst) { //
+		std::vector<TVertex> path_to_dst;
+		if (findVertex(src) == false || findVertex(dst) == false) return path_to_dst;
 		std::vector<int> parent(vertex.size(), -1);
-		std::vector<int> length(vertex.size());
+		std::vector<double> length(vertex.size());
 		std::vector<bool> checked(vertex.size(),false);
 		int new_min = checker(src.id);
 		for (size_t i = 0; i < length.size(); ++i) {
@@ -177,25 +212,23 @@ public:
 		}
 		length[checker(src.id)] = 0;
 		checked[checker(src.id)] = true;
-		int result = dijkstra(length, checked, src, dst,parent);
+		double result = dijkstra(length, checked, src, dst,parent);
 		if (result == INT32_MAX) {
 			std::cout << "Path doesnt exist" << std::endl;
-			return -1;
+			return path_to_dst;
 		}
 		std::vector<int> path;
 		for (int v = checker(dst.id); v != -1; v = parent[v]) {
 			path.push_back(v);
 		}
 		reverse(path.begin(), path.end());
-		std::vector<TVertex> path_to_dst;
 		std::cout << "path:";
 		for (size_t i = 0; i < path.size(); ++i) {
 			path_to_dst.push_back(vertex[path[i]]);
 			std::cout << path_to_dst[i].id << "->";
 		}
 		std::cout << std::endl;
-		
-		return result;
+		return path_to_dst;
 	}
 	void print() {
 		for (size_t i = 0; i < count; ++i) {
