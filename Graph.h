@@ -31,7 +31,11 @@ struct Edge {
 		return length;
 	}
 };
-
+std::ostream& operator<<(std::ostream& out, const Edge& way)
+{
+	out << way.dest << " - length: " << way.length << " ";
+	return out;
+}
 struct Vertex {
 	std::string id;
 	size_t amount;
@@ -51,6 +55,11 @@ struct Vertex {
 		else return true;
 	}
 };
+std::ostream& operator<<(std::ostream& out, const Vertex& vert)
+{
+	out << vert.id << " - amount:  " << vert.amount;
+	return out;
+}
 template<>
 struct std::equal_to<Vertex> {
 	size_t operator()(const Vertex& v1, const Vertex& v2) {
