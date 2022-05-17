@@ -1,12 +1,12 @@
 #include <vector>
 #include <string>
 #include <iostream>
-// Глубина + дейкстра
+
 struct Edge {
 	std::string dest;
 	double length;
 	bool pay;
-	int type; // 0- грунт , 1 - асфальт
+	bool type;
 	Edge(const Edge& rhs) {
 		this->dest = rhs.dest;
 		this->length = rhs.length;
@@ -22,20 +22,11 @@ struct Edge {
 		return *this;
 	}
 	Edge() : dest(""), length(-1), pay(false), type(1) {}
-	Edge(const std::string& dst, const double& l, const double& p = 2, const int& type =1) :length(l), dest(dst), pay(p), type(type) {}
-	bool operator ==(const Edge& rhs) const {
-		if (this->dest != rhs.dest || this->length != rhs.length || this->pay!=rhs.pay) return false;
-		else return true;
-	}
-	operator double() const{
+	Edge(const std::string& dst, const double& l, const double& p = 2, const bool& type = true) :length(l), dest(dst), pay(p), type(type) {}
+	/*operator double() const {
 		return length;
-	}
+	}*/
 };
-std::ostream& operator<<(std::ostream& out, const Edge& way)
-{
-	out << way.dest << " - length: " << way.length << " ";
-	return out;
-}
 struct Vertex {
 	std::string id;
 	size_t amount;
@@ -49,24 +40,43 @@ struct Vertex {
 		this->amount = rhs.amount;
 		return *this;
 	}
-	Vertex(const std::string& str, const size_t& am): id(str),amount(am){}
-	bool operator==(const Vertex& rhs) const {
-		if (this->id != rhs.id || this->amount != rhs.amount) return false;
-		else return true;
-	}
+	Vertex(const std::string& str, const size_t& am) : id(str), amount(am) {}
 };
-std::ostream& operator<<(std::ostream& out, const Vertex& vert)
-{
-	out << vert.id << " - amount:  " << vert.amount;
-	return out;
-}
 template<>
 struct std::equal_to<Vertex> {
 	size_t operator()(const Vertex& v1, const Vertex& v2) {
-		return((v1.id == v2.id) && (v1.amount==v2.amount));
+		return((v1.id == v2.id) && (v1.amount == v2.amount));
 	}
 };
 
+//template<typename TEdge>
+//struct WeightSelector {
+//	operator double(const TEdge& rhs) {
+//		return static_cast<TEdge>(rhs);
+//	}
+//};
+//template<typename TEdge, typename NewType>
+//struct WeightConverter
+//{
+//	static inline NewType run(const TEdge& x)
+//	{
+//		return static_cast<NewType>(x);
+//	}
+//};
+template<typename TEdge>
+class MWeightConverter {
+public:
+	double operator()(const TEdge& rhs) const {
+		return static_cast<double>(rhs);
+	}
+};
+template<>
+class MWeightConverter<Edge> {
+public:
+	double operator()(const Edge& rhs) const {
+		return rhs.length;
+	}
+};
 template <typename TVertex, typename TEdge, typename equal = std::equal_to<Vertex>>
 class Graph {
 	std::vector<std::vector<TEdge>> edge;
@@ -85,24 +95,29 @@ class Graph {
 		return -1;
 	}
 	bool dfs(const size_t curr_ind, const TVertex& dst, std::vector<TVertex>& tmp) const {
-		if (tmp[tmp.size() - 1] == dst) return true;
+		equal compare;
+		if (compare(tmp[tmp.size() - 1], dst)) return true;
 		for (size_t k = 0; k < edge[curr_ind].size(); ++k) {
-			if (tmp[tmp.size() - 1] == dst) return true;
+			if (compare(tmp[tmp.size() - 1], dst)) return true;
 			if (check(tmp, edge[curr_ind][k].dest) == true) continue;
 			int take_id = checker(edge[curr_ind][k].dest);
 			tmp.push_back(vertex[take_id]);
 			dfs(take_id, dst, tmp);
 		}
-		if (tmp[tmp.size() - 1] == dst) return true;
+		if (compare(tmp[tmp.size() - 1], dst)) return true;
 		else return false;
 	}
-	double dijkstra(std::vector<double>& length, std::vector<bool> checked, const TVertex& src, const TVertex& dst, std::vector<int>& parent) {
-		size_t new_min = checker(src.id); // default = source
+	template <typename wsm = MWeightConverter<TEdge>>
+	double dijkstr(std::vector<double>& length, std::vector<bool> checked, const TVertex& src, const TVertex& dst, std::vector<int>& parent, const double& road_fail = 0, const double& pay_fail = 0) {
+		size_t new_min = checker(src.id);
 		checked[new_min] = true;
+		wsm ws;
 		for (size_t i = 0; i < edge[new_min].size(); ++i) {
 			int ch = checker(edge[new_min][i].dest);
-			if (length[ch] > length[new_min] + edge[new_min][i].length) {
-				length[ch] = length[new_min] + edge[new_min][i].length;
+			int road = edge[new_min][i].type == 0 ? 0 : road_fail;
+			int pay = edge[new_min][i].pay == 0 ? 0 : pay_fail;
+			if (length[ch] > length[new_min] + ws(edge[new_min][i]) + pay + road) {
+				length[ch] = length[new_min] + ws(edge[new_min][i]) + pay + road;
 				parent[ch] = new_min;
 			}
 		}
@@ -124,27 +139,40 @@ class Graph {
 				temp = length[ch];
 			}
 		}
-		if (ind_min == -1) { 
-			return length[checker(dst.id)]; 
+		if (ind_min == -1) {
+			bool flag = false;
+			for (size_t i = 0; i < checked.size(); ++i) {
+				if (checked[i] == false) {
+					ind_min = i;
+					flag = true;
+					break;
+				}
+			}
+			if (flag == false) {
+				return length[checker(dst.id)];
+			}
+			//return length[checker(dst.id)];
 		}
-		return dijkstra(length, checked, vertex[ind_min], dst, parent);
+		return dijkstr(length, checked, vertex[ind_min], dst, parent, road_fail, pay_fail);
 	}
 public:
 	Graph() {
 		count = 0;
 	}
 	bool findVertex(const TVertex& f) const {
+		equal compare;
 		for (auto it : vertex) {
-			if (it == f) return true;
+			if (compare(it, f)) return true;
 		}
 		return false;
 	}
 	bool dfs(const TVertex& src, const TVertex& dst) const {
+		equal compare;
 		std::vector<TVertex> temp;
 		size_t curr_ind = 0;
 		if (findVertex(src) == false || findVertex(dst) == false) return false;
 		for (size_t i = 0; i < vertex.size(); ++i) {
-			if (src == vertex[i]) {
+			if (compare(src, vertex[i])) {
 				curr_ind = i;
 				break;
 			}
@@ -164,10 +192,10 @@ public:
 		int ind = -1;
 		std::string temp;
 		for (size_t i = 0; i < vertex.size(); ++i) {
-			if (compare(vertex[i],del)) {
+			if (compare(vertex[i], del)) {
 				ind = i;
 				temp = vertex[i].id;
-				vertex.erase(vertex.begin()+i);
+				vertex.erase(vertex.begin() + i);
 				break;
 			}
 		}
@@ -176,7 +204,7 @@ public:
 		for (size_t i = 0; i < edge.size(); ++i) {
 			for (size_t j = 0; j < edge[i].size(); ++j) {
 				if (edge[i][j].dest == temp) {
-					edge[i].erase(edge[i].begin()+j);
+					edge[i].erase(edge[i].begin() + j);
 				}
 			}
 		}
@@ -186,7 +214,7 @@ public:
 		if (findVertex(src) == false || findVertex(dst) == false) return;
 		equal compare;
 		for (size_t i = 0; i < vertex.size(); ++i) {
-			if (compare(src,vertex[i])) {
+			if (compare(src, vertex[i])) {
 				edge[i].push_back(newEdge);
 				return;
 			}
@@ -197,7 +225,7 @@ public:
 		int ind = -1;
 		equal compare;
 		for (size_t i = 0; i < vertex.size(); ++i) {
-			if (compare(vertex[i],src)) {
+			if (compare(vertex[i], src)) {
 				ind = i;
 				break;
 			}
@@ -208,12 +236,14 @@ public:
 			}
 		}
 	}
-	std::vector<TVertex> dijkstra(const TVertex& src, const TVertex& dst) { //
+	template <typename wsm = MWeightConverter<TEdge>>
+	std::vector<TVertex> dijkstra(const TVertex& src, const TVertex& dst, const double& road_fail = 0, const double& pay_fail = 0) { //
 		std::vector<TVertex> path_to_dst;
+		wsm wm;
 		if (findVertex(src) == false || findVertex(dst) == false) return path_to_dst;
 		std::vector<int> parent(vertex.size(), -1);
 		std::vector<double> length(vertex.size());
-		std::vector<bool> checked(vertex.size(),false);
+		std::vector<bool> checked(vertex.size(), false);
 		int new_min = checker(src.id);
 		for (size_t i = 0; i < length.size(); ++i) {
 			if (i == new_min) continue;
@@ -221,7 +251,7 @@ public:
 		}
 		length[checker(src.id)] = 0;
 		checked[checker(src.id)] = true;
-		double result = dijkstra(length, checked, src, dst,parent);
+		double result = dijkstr<wsm>(length, checked, src, dst, parent, road_fail, pay_fail);
 		if (result == INT32_MAX) {
 			std::cout << "Path doesnt exist" << std::endl;
 			return path_to_dst;
@@ -234,9 +264,26 @@ public:
 		std::cout << "path:";
 		for (size_t i = 0; i < path.size(); ++i) {
 			path_to_dst.push_back(vertex[path[i]]);
-			std::cout << path_to_dst[i].id << "->";
 		}
-		std::cout << std::endl;
+		for (size_t i = 0; i < path.size() - 1; ++i) {
+			int type = 0;
+			int pay = 0;
+			int ch = checker(path_to_dst[i].id);
+			double sum = 0;
+			for (size_t j = 0; j < edge[ch].size(); ++j) {
+				if (path_to_dst[i + 1].id == edge[ch][j].dest) {
+					type = edge[ch][j].type == 0 ? 0 : road_fail;
+					pay = edge[ch][j].pay == 0 ? 0 : pay_fail;
+					sum = wm(edge[ch][j]);
+					sum += type;
+					sum += pay;
+					break;
+				}
+			}
+			std::cout << "From: " << path_to_dst[i].id << " | to: " << path_to_dst[i + 1].id << std::endl;
+			std::cout << "Pay: " << pay << " | Road type: " << type << " | Length: " << sum << std::endl;
+		}
+		std::cout << std::endl << "Overall Length:" << result << std::endl;
 		return path_to_dst;
 	}
 	void print() {

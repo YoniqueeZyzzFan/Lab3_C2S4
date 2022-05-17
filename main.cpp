@@ -37,5 +37,6 @@ int main() {
 	//g.deleteEdge(Vertex("Temp", 5), Vertex("Krasnoyarsk", 13));
 	g.print();
 	//std::cout << g.dfs(Vertex("Temp", 5), Vertex("Krasnoyarsk", 13));
-	std::vector<Vertex>path= g.dijkstra(Vertex("Temp", 5), Vertex("Kuraka", 3));
+	std::vector<Vertex>path= g.dijkstra(Vertex("Temp", 5), Vertex("Kuraka", 3), 5, 5);
+	
 }
